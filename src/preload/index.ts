@@ -1,5 +1,4 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { IPC_CHANNELS } from '../shared/types';
 import type {
   ConversationNode,
   Message,
@@ -9,6 +8,31 @@ import type {
   AddMessageParams,
   UpdatePositionParams
 } from '../shared/types';
+
+const IPC_CHANNELS = {
+  // Database operations
+  DB_GET_ALL_NODES: 'db:get-all-nodes',
+  DB_GET_NODE: 'db:get-node',
+  DB_CREATE_NODE: 'db:create-node',
+  DB_UPDATE_NODE: 'db:update-node',
+  DB_DELETE_NODE: 'db:delete-node',
+  DB_GET_MESSAGES: 'db:get-messages',
+  DB_GET_CONVERSATION_CONTEXT: 'db:get-conversation-context',
+  DB_ADD_MESSAGE: 'db:add-message',
+  DB_GET_POSITION: 'db:get-position',
+  DB_UPDATE_POSITION: 'db:update-position',
+  DB_GET_ALL_POSITIONS: 'db:get-all-positions',
+
+  // LLM operations
+  LLM_SEND_MESSAGE: 'llm:send-message',
+  LLM_SET_API_KEY: 'llm:set-api-key',
+  LLM_HAS_API_KEY: 'llm:has-api-key',
+
+  // Window operations
+  WINDOW_MINIMIZE: 'window:minimize',
+  WINDOW_MAXIMIZE: 'window:maximize',
+  WINDOW_CLOSE: 'window:close',
+} as const;
 
 // API exposed to renderer process
 const api = {
