@@ -2,7 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { useTreeStore } from '../store';
 import MessageBubble from './MessageBubble';
 
-export default function ChatPanel() {
+interface ChatPanelProps {
+  onConfigureApiKey: () => void;
+}
+
+export default function ChatPanel({ onConfigureApiKey }: ChatPanelProps) {
   const {
     selectedNodeId,
     messages,
@@ -138,8 +142,16 @@ export default function ChatPanel() {
       {/* Input */}
       <footer className="flex-shrink-0 border-t border-border p-4">
         {!hasApiKey ? (
-          <div className="text-center text-text-tertiary text-sm py-2">
-            Configure your API key to start
+          <div className="text-center py-2">
+            <p className="text-text-tertiary text-sm mb-3">
+              Configure your API key to chat with Claude
+            </p>
+            <button
+              onClick={onConfigureApiKey}
+              className="px-4 py-2 bg-primary hover:bg-primary-hover text-text-inverse text-sm font-medium rounded transition-colors"
+            >
+              Configure API Key
+            </button>
           </div>
         ) : (
           <div className="flex gap-3">

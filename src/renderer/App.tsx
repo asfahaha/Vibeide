@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTreeStore } from './store';
 import TitleBar from './components/TitleBar';
 import TreeView from './components/TreeView';
@@ -6,7 +6,8 @@ import ChatPanel from './components/ChatPanel';
 import ApiKeyModal from './components/ApiKeyModal';
 
 export default function App() {
-  const { loadData, checkApiKey, hasApiKey, error, setError } = useTreeStore();
+  const { loadData, checkApiKey, error, setError } = useTreeStore();
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -15,7 +16,7 @@ export default function App() {
 
   return (
     <div className="h-screen flex flex-col bg-canvas">
-      <TitleBar />
+      <TitleBar onSettingsClick={() => setShowSettings(true)} />
 
       <main className="flex-1 flex overflow-hidden">
         {/* Tree View - Left Panel */}
@@ -25,7 +26,7 @@ export default function App() {
 
         {/* Chat Panel - Right Panel */}
         <aside className="w-[420px] flex flex-col border-l border-border">
-          <ChatPanel />
+          <ChatPanel onConfigureApiKey={() => setShowSettings(true)} />
         </aside>
       </main>
 
@@ -49,8 +50,8 @@ export default function App() {
         </div>
       )}
 
-      {/* API Key Modal */}
-      {!hasApiKey && <ApiKeyModal />}
+      {/* Settings Modal */}
+      {showSettings && <ApiKeyModal onClose={() => setShowSettings(false)} />}
     </div>
   );
 }

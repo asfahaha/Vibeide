@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import { useTreeStore } from '../store';
 
-export default function ApiKeyModal() {
-  const { setApiKey } = useTreeStore();
+interface ApiKeyModalProps {
+  onClose: () => void;
+}
+
+export default function ApiKeyModal({ onClose }: ApiKeyModalProps) {
+  const { setApiKey, hasApiKey } = useTreeStore();
   const [key, setKey] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -25,6 +29,7 @@ export default function ApiKeyModal() {
 
     try {
       await setApiKey(key.trim());
+      onClose();
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -37,17 +42,29 @@ export default function ApiKeyModal() {
       <div className="bg-surface border border-border rounded-lg shadow-elevation-3 w-full max-w-sm mx-4">
         {/* Header */}
         <div className="px-6 py-5 border-b border-border">
-          <div className="flex items-center gap-3">
-            {/* Geometric key icon */}
-            <div className="w-10 h-10 bg-primary rounded flex items-center justify-center">
-              <svg className="w-5 h-5 text-text-inverse" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              {/* Geometric key icon */}
+              <div className="w-10 h-10 bg-primary rounded flex items-center justify-center">
+                <svg className="w-5 h-5 text-text-inverse" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-text">Settings</h2>
+                <p className="text-sm text-text-secondary">
+                  {hasApiKey ? 'API key configured' : 'Configure API key'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-1 text-text-tertiary hover:text-text transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </div>
-            <div>
-              <h2 className="text-base font-semibold text-text">API Key Required</h2>
-              <p className="text-sm text-text-secondary">Connect to Claude</p>
-            </div>
+            </button>
           </div>
         </div>
 
@@ -63,7 +80,7 @@ export default function ApiKeyModal() {
                 type="password"
                 value={key}
                 onChange={(e) => setKey(e.target.value)}
-                placeholder="sk-ant-api03-..."
+                placeholder={hasApiKey ? '••••••••••••••••' : 'sk-ant-api03-...'}
                 className="w-full bg-canvas border border-border rounded px-4 py-3 text-sm text-text placeholder-text-tertiary focus:outline-none focus:border-primary transition-colors"
                 autoFocus
               />
@@ -90,19 +107,26 @@ export default function ApiKeyModal() {
             </p>
           </div>
 
-          <div className="mt-6">
+          <div className="mt-6 flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-3 border border-border hover:bg-canvas text-text font-medium rounded transition-colors"
+            >
+              Cancel
+            </button>
             <button
               type="submit"
               disabled={isSubmitting || !key.trim()}
-              className="w-full py-3 bg-primary hover:bg-primary-hover disabled:bg-border disabled:text-text-tertiary text-text-inverse font-medium rounded transition-colors flex items-center justify-center gap-2"
+              className="flex-1 py-3 bg-primary hover:bg-primary-hover disabled:bg-border disabled:text-text-tertiary text-text-inverse font-medium rounded transition-colors flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-text-inverse/30 border-t-text-inverse rounded-full animate-spin" />
-                  <span>Connecting</span>
+                  <span>Saving</span>
                 </>
               ) : (
-                <span>Connect</span>
+                <span>{hasApiKey ? 'Update' : 'Save'}</span>
               )}
             </button>
           </div>
