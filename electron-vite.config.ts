@@ -14,7 +14,7 @@ export default defineConfig({
     }
   },
   preload: {
-    plugins: [externalizeDepsPlugin()],
+    // Don't externalize deps for preload - bundle everything
     build: {
       rollupOptions: {
         input: {

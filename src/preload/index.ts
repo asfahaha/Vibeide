@@ -1,14 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type {
-  ConversationNode,
-  Message,
-  NodePosition,
-  CreateNodeParams,
-  UpdateNodeParams,
-  AddMessageParams,
-  UpdatePositionParams
-} from '../shared/types';
 
+// IPC Channel names - inlined to avoid module resolution issues
 const IPC_CHANNELS = {
   // Database operations
   DB_GET_ALL_NODES: 'db:get-all-nodes',
@@ -33,6 +25,57 @@ const IPC_CHANNELS = {
   WINDOW_MAXIMIZE: 'window:maximize',
   WINDOW_CLOSE: 'window:close',
 } as const;
+
+// Types for the API - inlined to avoid module resolution issues
+interface ConversationNode {
+  id: string;
+  parent_id: string | null;
+  title: string;
+  created_at: number;
+  updated_at: number;
+  tags: string[];
+  bookmarked: boolean;
+}
+
+interface Message {
+  id: string;
+  node_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+  is_inherited: boolean;
+}
+
+interface NodePosition {
+  node_id: string;
+  x: number;
+  y: number;
+}
+
+interface CreateNodeParams {
+  parent_id: string | null;
+  title?: string;
+  tags?: string[];
+}
+
+interface UpdateNodeParams {
+  id: string;
+  title?: string;
+  tags?: string[];
+  bookmarked?: boolean;
+}
+
+interface AddMessageParams {
+  node_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+interface UpdatePositionParams {
+  node_id: string;
+  x: number;
+  y: number;
+}
 
 // API exposed to renderer process
 const api = {
