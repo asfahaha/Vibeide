@@ -1,0 +1,13 @@
+{
+  "extends": "@electron-toolkit/tsconfig/tsconfig.web.json",
+  "compilerOptions": {
+    "outDir": "./out",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@renderer/*": ["src/renderer/*"]
+    },
+    "jsx": "react-jsx"
+  },
+  "include": ["src/renderer/**/*", "src/shared/**/*"]
+}
