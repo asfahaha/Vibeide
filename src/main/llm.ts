@@ -52,8 +52,17 @@ export async function sendMessage(
     return textContent.text;
   } catch (error) {
     if (error instanceof Anthropic.APIError) {
-      throw new Error(`API Error: ${error.message}`);
+      const diagnostics = [
+        `Status: ${error.status ?? 'unknown'}`,
+        `Type: ${error.type ?? 'unknown'}`,
+        `Request ID: ${error.request_id ?? 'unknown'}`,
+        `Message: ${error.message}`
+      ].join('\n');
+      throw new Error(
+        `Anthropic API error (${error.status ?? 'unknown'}). ${error.message}\n\nDiagnostics:\n${diagnostics}`
+      );
     }
-    throw error;
+    const fallbackMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Unexpected error while contacting Anthropic.\n\nDiagnostics:\n${fallbackMessage}`);
   }
 }
