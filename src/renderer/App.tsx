@@ -11,6 +11,13 @@ export default function App() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    if (!window.api) {
+      setError(
+        'App API not available. Make sure the Electron preload script is running (the Vite dev server alone does not provide window.api).',
+        'Diagnostics:\nwindow.api is undefined. Run the app via Electron (npm run dev) instead of only the Vite dev server.'
+      );
+      return;
+    }
     loadData();
     checkApiKey();
   }, [loadData, checkApiKey]);
