@@ -4,9 +4,15 @@ import type { Message } from '../shared/types';
 let client: Anthropic | null = null;
 let apiKey: string | null = null;
 
-export function setApiKey(key: string): void {
-  apiKey = key;
-  client = new Anthropic({ apiKey: key });
+export function setApiKey(key: string): boolean {
+  try {
+    apiKey = key;
+    client = new Anthropic({ apiKey: key });
+    return true;
+  } catch (error) {
+    console.error('Failed to set API key:', error);
+    throw error;
+  }
 }
 
 export function hasApiKey(): boolean {

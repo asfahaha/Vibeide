@@ -215,10 +215,14 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
   // Set API key
   setApiKey: async (key) => {
     try {
-      await window.api.setApiKey(key);
-      set({ hasApiKey: true });
+      const result = await window.api.setApiKey(key);
+      if (result) {
+        set({ hasApiKey: true, error: null });
+      }
     } catch (error) {
-      set({ error: (error as Error).message });
+      const message = (error as Error).message || 'Failed to set API key';
+      set({ error: message });
+      throw error;
     }
   },
 

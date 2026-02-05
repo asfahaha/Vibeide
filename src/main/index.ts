@@ -128,8 +128,13 @@ function setupIPCHandlers(): void {
 
   // LLM handlers
   ipcMain.handle(IPC_CHANNELS.LLM_SET_API_KEY, (_, key: string) => {
-    setApiKey(key);
-    return true;
+    try {
+      setApiKey(key);
+      return true;
+    } catch (error) {
+      console.error('Failed to set API key:', error);
+      throw error;
+    }
   });
 
   ipcMain.handle(IPC_CHANNELS.LLM_HAS_API_KEY, () => {
