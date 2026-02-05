@@ -65,6 +65,15 @@ const parseError = (error: unknown, fallbackMessage: string) => {
   return { message, details };
 };
 
+const getApi = () => {
+  if (!window.api) {
+    throw new Error(
+      'App API not available. Make sure the Electron preload script is running (the Vite dev server alone does not provide window.api).'
+    );
+  }
+  return window.api;
+};
+
 export const useTreeStore = create<TreeStore>((set, get) => ({
   // Initial state
   nodes: [],
@@ -80,9 +89,10 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
   loadData: async () => {
     set({ isLoading: true, error: null, errorDetails: null });
     try {
+      const api = getApi();
       const [nodes, positions] = await Promise.all([
-        window.api.getAllNodes(),
-        window.api.getAllPositions()
+        api.getAllNodes(),
+        api.getAllPositions()
       ]);
 
       const positionsMap: Record<string, NodePosition> = {};
@@ -113,8 +123,9 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
   // Create a new node
   createNode: async (params) => {
     try {
-      const node = await window.api.createNode(params);
-      const position = await window.api.getPosition(node.id);
+      const api = getApi();
+      const node = await api.createNode(params);
+      const position = await api.getPosition(node.id);
 
       set((state) => ({
         nodes: [...state.nodes, node],
@@ -134,7 +145,8 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
   // Update a node
   updateNode: async (params) => {
     try {
-      const updated = await window.api.updateNode(params);
+      const api = getApi();
+      const updated = await api.updateNode(params);
       if (updated) {
         set((state) => ({
           nodes: state.nodes.map((n) => (n.id === params.id ? updated : n))
@@ -149,7 +161,8 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
   // Delete a node and its descendants
   deleteNode: async (id) => {
     try {
-      await window.api.deleteNode(id);
+      const api = getApi();
+      await api.deleteNode(id);
 
       // Find all descendant IDs
       const findDescendants = (nodeId: string, nodes: ConversationNode[]): string[] => {
@@ -172,7 +185,8 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
   // Load messages for a node
   loadMessages: async (nodeId) => {
     try {
-      const messages = await window.api.getConversationContext(nodeId);
+      const api = getApi();
+      const messages = await api.getConversationContext(nodeId);
       set((state) => ({
         messages: { ...state.messages, [nodeId]: messages }
       }));
@@ -185,7 +199,8 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
   // Add a user message
   addUserMessage: async (nodeId, content) => {
     try {
-      const message = await window.api.addMessage({
+      const api = getApi();
+      const message = await api.addMessage({
         node_id: nodeId,
         role: 'user',
         content
@@ -207,7 +222,8 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
   sendMessage: async (nodeId) => {
     set({ isLoading: true, error: null, errorDetails: null });
     try {
-      const response = await window.api.sendMessage(nodeId);
+      const api = getApi();
+      const response = await api.sendMessage(nodeId);
 
       set((state) => ({
         messages: {
@@ -225,7 +241,8 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
   // Update node position
   updatePosition: async (nodeId, x, y) => {
     try {
-      const position = await window.api.updatePosition({ node_id: nodeId, x, y });
+      const api = getApi();
+      const position = await api.updatePosition({ node_id: nodeId, x, y });
       set((state) => ({
         positions: { ...state.positions, [nodeId]: position }
       }));
@@ -257,7 +274,8 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
   // Set API key
   setApiKey: async (key) => {
     try {
-      const result = await window.api.setApiKey(key);
+      const api = getApi();
+      const result = await api.setApiKey(key);
       if (result) {
         set({ hasApiKey: true, error: null, errorDetails: null });
       }
@@ -271,7 +289,8 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
   // Check if API key is set
   checkApiKey: async () => {
     try {
-      const hasKey = await window.api.hasApiKey();
+      const api = getApi();
+      const hasKey = await api.hasApiKey();
       set({ hasApiKey: hasKey });
     } catch (error) {
       const { message, details } = parseError(error, 'Failed to check API key');
