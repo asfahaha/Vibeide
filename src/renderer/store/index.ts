@@ -15,6 +15,7 @@ interface TreeStore {
   selectedNodeId: string | null;
   isLoading: boolean;
   error: string | null;
+  errorDetails: string | null;
   hasApiKey: boolean;
 
   // Actions
@@ -30,8 +31,48 @@ interface TreeStore {
   forkConversation: (parentId: string, title?: string) => Promise<ConversationNode>;
   setApiKey: (key: string) => Promise<void>;
   checkApiKey: () => Promise<void>;
-  setError: (error: string | null) => void;
+  setError: (error: string | null, details?: string | null) => void;
 }
+
+const diagnosticsMarker = '\n\nDiagnostics:\n';
+
+const parseError = (error: unknown, fallbackMessage: string) => {
+  let message = fallbackMessage;
+  let details: string | null = null;
+
+  if (error instanceof Error) {
+    message = error.message || fallbackMessage;
+    details = error.stack || error.message;
+  } else if (typeof error === 'string') {
+    message = error;
+    details = error;
+  } else if (error) {
+    try {
+      details = JSON.stringify(error, null, 2);
+    } catch {
+      details = String(error);
+    }
+  }
+
+  if (message.includes(diagnosticsMarker)) {
+    const [summary, diagnostics] = message.split(diagnosticsMarker);
+    return {
+      message: summary || fallbackMessage,
+      details: diagnostics ? `Diagnostics:\n${diagnostics}` : details
+    };
+  }
+
+  return { message, details };
+};
+
+const getApi = () => {
+  if (!window.api) {
+    throw new Error(
+      'App API not available. Make sure the Electron preload script is running (the Vite dev server alone does not provide window.api).'
+    );
+  }
+  return window.api;
+};
 
 export const useTreeStore = create<TreeStore>((set, get) => ({
   // Initial state
@@ -41,15 +82,17 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
   selectedNodeId: null,
   isLoading: false,
   error: null,
+  errorDetails: null,
   hasApiKey: false,
 
   // Load all data from database
   loadData: async () => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null, errorDetails: null });
     try {
+      const api = getApi();
       const [nodes, positions] = await Promise.all([
-        window.api.getAllNodes(),
-        window.api.getAllPositions()
+        api.getAllNodes(),
+        api.getAllPositions()
       ]);
 
       const positionsMap: Record<string, NodePosition> = {};
@@ -64,7 +107,8 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
         await get().createNode({ parent_id: null, title: 'New Research' });
       }
     } catch (error) {
-      set({ error: (error as Error).message, isLoading: false });
+      const { message, details } = parseError(error, 'Failed to load data');
+      set({ error: message, errorDetails: details, isLoading: false });
     }
   },
 
@@ -79,8 +123,9 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
   // Create a new node
   createNode: async (params) => {
     try {
-      const node = await window.api.createNode(params);
-      const position = await window.api.getPosition(node.id);
+      const api = getApi();
+      const node = await api.createNode(params);
+      const position = await api.getPosition(node.id);
 
       set((state) => ({
         nodes: [...state.nodes, node],
@@ -91,7 +136,8 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
 
       return node;
     } catch (error) {
-      set({ error: (error as Error).message });
+      const { message, details } = parseError(error, 'Failed to create node');
+      set({ error: message, errorDetails: details });
       throw error;
     }
   },
@@ -99,21 +145,24 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
   // Update a node
   updateNode: async (params) => {
     try {
-      const updated = await window.api.updateNode(params);
+      const api = getApi();
+      const updated = await api.updateNode(params);
       if (updated) {
         set((state) => ({
           nodes: state.nodes.map((n) => (n.id === params.id ? updated : n))
         }));
       }
     } catch (error) {
-      set({ error: (error as Error).message });
+      const { message, details } = parseError(error, 'Failed to update node');
+      set({ error: message, errorDetails: details });
     }
   },
 
   // Delete a node and its descendants
   deleteNode: async (id) => {
     try {
-      await window.api.deleteNode(id);
+      const api = getApi();
+      await api.deleteNode(id);
 
       // Find all descendant IDs
       const findDescendants = (nodeId: string, nodes: ConversationNode[]): string[] => {
@@ -128,26 +177,30 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
         selectedNodeId: toDelete.has(state.selectedNodeId || '') ? null : state.selectedNodeId
       }));
     } catch (error) {
-      set({ error: (error as Error).message });
+      const { message, details } = parseError(error, 'Failed to delete node');
+      set({ error: message, errorDetails: details });
     }
   },
 
   // Load messages for a node
   loadMessages: async (nodeId) => {
     try {
-      const messages = await window.api.getConversationContext(nodeId);
+      const api = getApi();
+      const messages = await api.getConversationContext(nodeId);
       set((state) => ({
         messages: { ...state.messages, [nodeId]: messages }
       }));
     } catch (error) {
-      set({ error: (error as Error).message });
+      const { message, details } = parseError(error, 'Failed to load messages');
+      set({ error: message, errorDetails: details });
     }
   },
 
   // Add a user message
   addUserMessage: async (nodeId, content) => {
     try {
-      const message = await window.api.addMessage({
+      const api = getApi();
+      const message = await api.addMessage({
         node_id: nodeId,
         role: 'user',
         content
@@ -160,15 +213,17 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
         }
       }));
     } catch (error) {
-      set({ error: (error as Error).message });
+      const { message, details } = parseError(error, 'Failed to add message');
+      set({ error: message, errorDetails: details });
     }
   },
 
   // Send message to LLM and get response
   sendMessage: async (nodeId) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null, errorDetails: null });
     try {
-      const response = await window.api.sendMessage(nodeId);
+      const api = getApi();
+      const response = await api.sendMessage(nodeId);
 
       set((state) => ({
         messages: {
@@ -178,19 +233,22 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
         isLoading: false
       }));
     } catch (error) {
-      set({ error: (error as Error).message, isLoading: false });
+      const { message, details } = parseError(error, 'Failed to send message');
+      set({ error: message, errorDetails: details, isLoading: false });
     }
   },
 
   // Update node position
   updatePosition: async (nodeId, x, y) => {
     try {
-      const position = await window.api.updatePosition({ node_id: nodeId, x, y });
+      const api = getApi();
+      const position = await api.updatePosition({ node_id: nodeId, x, y });
       set((state) => ({
         positions: { ...state.positions, [nodeId]: position }
       }));
     } catch (error) {
-      set({ error: (error as Error).message });
+      const { message, details } = parseError(error, 'Failed to update node position');
+      set({ error: message, errorDetails: details });
     }
   },
 
@@ -207,7 +265,8 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
 
       return node;
     } catch (error) {
-      set({ error: (error as Error).message });
+      const { message, details } = parseError(error, 'Failed to fork conversation');
+      set({ error: message, errorDetails: details });
       throw error;
     }
   },
@@ -215,13 +274,14 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
   // Set API key
   setApiKey: async (key) => {
     try {
-      const result = await window.api.setApiKey(key);
+      const api = getApi();
+      const result = await api.setApiKey(key);
       if (result) {
-        set({ hasApiKey: true, error: null });
+        set({ hasApiKey: true, error: null, errorDetails: null });
       }
     } catch (error) {
-      const message = (error as Error).message || 'Failed to set API key';
-      set({ error: message });
+      const { message, details } = parseError(error, 'Failed to set API key');
+      set({ error: message, errorDetails: details });
       throw error;
     }
   },
@@ -229,15 +289,17 @@ export const useTreeStore = create<TreeStore>((set, get) => ({
   // Check if API key is set
   checkApiKey: async () => {
     try {
-      const hasKey = await window.api.hasApiKey();
+      const api = getApi();
+      const hasKey = await api.hasApiKey();
       set({ hasApiKey: hasKey });
     } catch (error) {
-      set({ error: (error as Error).message });
+      const { message, details } = parseError(error, 'Failed to check API key');
+      set({ error: message, errorDetails: details });
     }
   },
 
   // Set error
-  setError: (error) => {
-    set({ error });
+  setError: (error, details = null) => {
+    set({ error, errorDetails: details });
   }
 }));
