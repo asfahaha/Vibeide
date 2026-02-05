@@ -6,13 +6,26 @@ import ChatPanel from './components/ChatPanel';
 import ApiKeyModal from './components/ApiKeyModal';
 
 export default function App() {
-  const { loadData, checkApiKey, error, setError } = useTreeStore();
+  const { loadData, checkApiKey, error, errorDetails, setError } = useTreeStore();
   const [showSettings, setShowSettings] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     loadData();
     checkApiKey();
   }, [loadData, checkApiKey]);
+
+  useEffect(() => {
+    if (!error) {
+      setCopied(false);
+    }
+  }, [error]);
+
+  const handleCopyLog = async () => {
+    if (!errorDetails) return;
+    await navigator.clipboard.writeText(errorDetails);
+    setCopied(true);
+  };
 
   return (
     <div className="h-screen flex flex-col bg-canvas">
@@ -37,6 +50,15 @@ export default function App() {
             <div className="w-2 h-2 bg-error rounded-full mt-1.5 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm text-text">{error}</p>
+              {errorDetails && (
+                <button
+                  type="button"
+                  onClick={handleCopyLog}
+                  className="mt-2 text-xs font-medium text-primary hover:underline"
+                >
+                  {copied ? 'Copied log' : 'Copy error log'}
+                </button>
+              )}
             </div>
             <button
               onClick={() => setError(null)}
