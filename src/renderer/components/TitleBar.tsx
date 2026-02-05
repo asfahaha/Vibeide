@@ -4,48 +4,52 @@ export default function TitleBar() {
   const handleClose = () => window.api.closeWindow();
 
   return (
-    <div className="h-10 bg-surface-900 border-b border-surface-800 flex items-center justify-between px-4 drag-region">
+    <header className="h-11 bg-surface border-b border-border flex items-center justify-between px-4 drag-region">
       {/* macOS traffic lights spacer */}
       <div className="w-20 flex-shrink-0" />
 
-      {/* Title */}
+      {/* Title - Bauhaus typography */}
       <div className="flex items-center gap-2">
-        <svg className="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-        </svg>
-        <span className="text-sm font-medium text-surface-200">Research Tree IDE</span>
+        {/* Geometric logo mark */}
+        <div className="w-5 h-5 relative">
+          <div className="absolute inset-0 bg-primary rounded-sm" />
+          <div className="absolute top-1 left-1 w-1.5 h-1.5 bg-surface rounded-full" />
+        </div>
+        <span className="text-sm font-medium text-text tracking-tight">
+          Research Tree
+        </span>
       </div>
 
       {/* Window Controls (for Windows/Linux) */}
-      <div className="flex items-center gap-1 no-drag">
+      <div className="flex items-center no-drag">
         <button
           onClick={handleMinimize}
-          className="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-700 transition-colors"
+          className="w-11 h-11 flex items-center justify-center hover:bg-primary-light transition-colors"
           title="Minimize"
         >
-          <svg className="w-4 h-4 text-surface-400" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M5 10h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <svg className="w-3 h-[1.5px]" fill="currentColor" viewBox="0 0 12 2">
+            <rect width="12" height="1.5" rx="0.5" className="text-text-secondary" />
           </svg>
         </button>
         <button
           onClick={handleMaximize}
-          className="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-700 transition-colors"
+          className="w-11 h-11 flex items-center justify-center hover:bg-primary-light transition-colors"
           title="Maximize"
         >
-          <svg className="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 20 20">
-            <rect x="4" y="4" width="12" height="12" strokeWidth="2" rx="1" />
+          <svg className="w-3 h-3 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 12 12" strokeWidth="1.5">
+            <rect x="1" y="1" width="10" height="10" rx="1" />
           </svg>
         </button>
         <button
           onClick={handleClose}
-          className="w-8 h-8 flex items-center justify-center rounded hover:bg-red-600 transition-colors"
+          className="w-11 h-11 flex items-center justify-center hover:bg-error hover:text-text-inverse transition-colors"
           title="Close"
         >
-          <svg className="w-4 h-4 text-surface-400" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+          <svg className="w-3 h-3 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 12 12" strokeWidth="1.5">
+            <path d="M1 1l10 10M11 1L1 11" />
           </svg>
         </button>
       </div>
-    </div>
+    </header>
   );
 }

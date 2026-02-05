@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Bauhaus Design System - Global Styles */
+
 * {
   margin: 0;
   padding: 0;
@@ -12,33 +14,34 @@ html, body, #root {
   height: 100%;
   width: 100%;
   overflow: hidden;
-  font-family: 'Inter', system-ui, sans-serif;
 }
 
 body {
-  background-color: #09090b;
-  color: #fafafa;
+  background-color: #FAFAFA;
+  color: #1A1A1A;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
-/* Custom scrollbar */
+/* Bauhaus Scrollbar - Minimal */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #18181b;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #3f3f46;
-  border-radius: 4px;
+  background: #E0E0E0;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+  background: #CCCCCC;
 }
 
 /* Drag region for frameless window */
@@ -50,23 +53,96 @@ body {
   -webkit-app-region: no-drag;
 }
 
-/* React Flow styles */
+/* React Flow Overrides - Bauhaus Style */
 .react-flow__node {
   cursor: pointer;
 }
 
 .react-flow__edge-path {
-  stroke: #3f3f46;
+  stroke: #E0E0E0;
   stroke-width: 2;
 }
 
 .react-flow__edge.selected .react-flow__edge-path,
-.react-flow__edge:focus .react-flow__edge-path,
-.react-flow__edge:focus-visible .react-flow__edge-path {
-  stroke: #0ea5e9;
+.react-flow__edge:focus .react-flow__edge-path {
+  stroke: #0066CC;
 }
 
-/* Prevent text selection during drag */
 .react-flow__pane {
   user-select: none;
+}
+
+.react-flow__controls {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid #E0E0E0 !important;
+  border-radius: 6px !important;
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  background: #FFFFFF !important;
+  border: none !important;
+  border-bottom: 1px solid #E0E0E0 !important;
+  color: #666666 !important;
+  width: 28px !important;
+  height: 28px !important;
+}
+
+.react-flow__controls-button:hover {
+  background: rgba(0, 102, 204, 0.05) !important;
+  color: #0066CC !important;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}
+
+.react-flow__minimap {
+  background: #FFFFFF !important;
+  border: 1px solid #E0E0E0 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+.react-flow__background pattern circle {
+  fill: #E0E0E0;
+}
+
+/* Focus States - Bauhaus */
+:focus-visible {
+  outline: 2px solid #0066CC;
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #0066CC;
+  outline-offset: 0;
+}
+
+/* Selection */
+::selection {
+  background: rgba(0, 102, 204, 0.20);
+  color: inherit;
+}
+
+/* Transitions */
+.transition-bauhaus {
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Utility Classes */
+.text-balance {
+  text-wrap: balance;
+}
+
+/* Animation for loading states */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 1.5s ease-in-out infinite;
 }

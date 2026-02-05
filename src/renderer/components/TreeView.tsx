@@ -51,7 +51,7 @@ export default function TreeView() {
         target: node.id,
         type: 'smoothstep',
         animated: false,
-        style: { stroke: '#3f3f46', strokeWidth: 2 }
+        style: { stroke: '#E0E0E0', strokeWidth: 2 }
       }));
   }, [nodes]);
 
@@ -88,7 +88,7 @@ export default function TreeView() {
   };
 
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full bg-canvas">
       <ReactFlow
         nodes={rfNodes}
         edges={rfEdges}
@@ -106,30 +106,28 @@ export default function TreeView() {
       >
         <Background
           variant={BackgroundVariant.Dots}
-          gap={20}
+          gap={24}
           size={1}
-          color="#27272a"
+          color="#E0E0E0"
         />
         <Controls
           showZoom={true}
           showFitView={true}
           showInteractive={false}
-          className="!bg-surface-800 !border-surface-700 !shadow-lg"
         />
         <MiniMap
           nodeColor={(node) =>
-            node.data?.selected ? '#0ea5e9' : '#3f3f46'
+            node.data?.selected ? '#0066CC' : '#E0E0E0'
           }
-          maskColor="rgba(9, 9, 11, 0.8)"
-          className="!bg-surface-900 !border-surface-700"
+          maskColor="rgba(250, 250, 250, 0.8)"
         />
         <Panel position="top-left" className="flex gap-2">
           <button
             onClick={handleCreateRoot}
-            className="flex items-center gap-2 px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary-hover text-text-inverse rounded text-sm font-medium transition-colors shadow-elevation-1"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
             New Root
           </button>

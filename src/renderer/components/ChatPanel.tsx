@@ -11,8 +11,7 @@ export default function ChatPanel() {
     hasApiKey,
     addUserMessage,
     sendMessage,
-    forkConversation,
-    updateNode
+    forkConversation
   } = useTreeStore();
 
   const [inputValue, setInputValue] = useState('');
@@ -38,10 +37,7 @@ export default function ChatPanel() {
     const content = inputValue.trim();
     setInputValue('');
 
-    // Add user message
     await addUserMessage(selectedNodeId, content);
-
-    // Get AI response
     await sendMessage(selectedNodeId);
   };
 
@@ -59,60 +55,64 @@ export default function ChatPanel() {
 
   if (!selectedNodeId) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-surface-500 p-8">
-        <svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-        </svg>
-        <p className="text-center">
-          Select a conversation node from the tree
+      <div className="h-full flex flex-col items-center justify-center text-text-tertiary p-8 bg-surface">
+        <div className="w-12 h-12 rounded-full border-2 border-border flex items-center justify-center mb-4">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        </div>
+        <p className="text-sm text-center leading-relaxed">
+          Select a node from the tree
           <br />
-          to view and continue the conversation.
+          to view the conversation.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col bg-surface-950">
+    <div className="h-full flex flex-col bg-surface">
       {/* Header */}
-      <div className="flex-shrink-0 border-b border-surface-800 p-4">
+      <header className="flex-shrink-0 border-b border-border px-5 py-4">
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-semibold text-surface-100 truncate">
+            <h2 className="text-base font-semibold text-text truncate">
               {selectedNode?.title || 'Conversation'}
             </h2>
-            <p className="text-xs text-surface-500 mt-0.5">
-              {nodeMessages.length} messages
+            <p className="text-xs text-text-tertiary mt-0.5">
+              {nodeMessages.filter(m => !m.is_inherited).length} messages in this branch
             </p>
           </div>
           <button
             onClick={handleFork}
-            className="flex items-center gap-2 px-3 py-1.5 bg-surface-800 hover:bg-surface-700 text-surface-300 rounded-lg text-sm transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-border hover:border-text-tertiary hover:bg-primary-light text-text-secondary hover:text-primary rounded text-sm transition-colors"
             title="Create a fork from this point"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
             </svg>
             Fork
           </button>
         </div>
-      </div>
+      </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto px-5 py-4">
         {nodeMessages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-surface-500">
-            <svg className="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-            </svg>
+          <div className="h-full flex flex-col items-center justify-center text-text-tertiary">
+            <div className="w-10 h-10 rounded border border-border flex items-center justify-center mb-3">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+              </svg>
+            </div>
             <p className="text-sm text-center">
-              Start your research conversation.
+              Start your research.
               <br />
-              Ask a question to begin.
+              Ask a question below.
             </p>
           </div>
         ) : (
-          <>
+          <div className="space-y-4">
             {nodeMessages.map((message) => (
               <MessageBubble
                 key={message.id}
@@ -121,25 +121,25 @@ export default function ChatPanel() {
               />
             ))}
             {isLoading && (
-              <div className="flex items-center gap-2 text-surface-400 text-sm">
+              <div className="flex items-center gap-2 text-text-tertiary text-sm py-2">
                 <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse-subtle" />
+                  <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse-subtle" style={{ animationDelay: '200ms' }} />
+                  <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse-subtle" style={{ animationDelay: '400ms' }} />
                 </div>
-                <span>Thinking...</span>
+                <span>Thinking</span>
               </div>
             )}
             <div ref={messagesEndRef} />
-          </>
+          </div>
         )}
       </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 border-t border-surface-800 p-4">
+      <footer className="flex-shrink-0 border-t border-border p-4">
         {!hasApiKey ? (
-          <div className="text-center text-surface-500 text-sm py-2">
-            Please configure your API key to start chatting
+          <div className="text-center text-text-tertiary text-sm py-2">
+            Configure your API key to start
           </div>
         ) : (
           <div className="flex gap-3">
@@ -148,23 +148,23 @@ export default function ChatPanel() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask a question or continue the conversation..."
-              className="flex-1 bg-surface-800 border border-surface-700 rounded-lg px-4 py-3 text-surface-100 placeholder-surface-500 resize-none focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-              rows={3}
+              placeholder="Ask a question..."
+              className="flex-1 bg-canvas border border-border rounded px-4 py-3 text-sm text-text placeholder-text-tertiary resize-none focus:outline-none focus:border-primary transition-colors"
+              rows={2}
               disabled={isLoading}
             />
             <button
               onClick={handleSubmit}
               disabled={!inputValue.trim() || isLoading}
-              className="self-end px-4 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-surface-700 disabled:text-surface-500 text-white rounded-lg transition-colors"
+              className="self-end w-10 h-10 flex items-center justify-center bg-primary hover:bg-primary-hover disabled:bg-border disabled:text-text-tertiary text-text-inverse rounded transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
               </svg>
             </button>
           </div>
         )}
-      </div>
+      </footer>
     </div>
   );
 }
