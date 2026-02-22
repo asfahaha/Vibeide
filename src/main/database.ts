@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import { app } from 'electron';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import type {
@@ -24,11 +25,7 @@ function deserializeNode(row: any): ConversationNode {
 export function initDatabase(dbPath?: string): void {
   // When dbPath is provided (e.g., ':memory:' for tests), use it directly.
   // Otherwise fall back to the Electron userData path.
-  const resolvedPath = dbPath ?? (() => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { app } = require('electron') as typeof import('electron');
-    return path.join(app.getPath('userData'), 'research-tree.db');
-  })();
+  const resolvedPath = dbPath ?? path.join(app.getPath('userData'), 'research-tree.db');
 
   db = new Database(resolvedPath);
   db.pragma('journal_mode = WAL');
