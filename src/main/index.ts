@@ -1,5 +1,7 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron';
+import { app, shell, BrowserWindow, ipcMain, safeStorage } from 'electron';
 import { join } from 'path';
+import fs from 'fs';
+import nodePath from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import {
   initDatabase,
@@ -16,14 +18,27 @@ import {
   updatePosition,
   getAllPositions
 } from './database';
-import { setApiKey, hasApiKey, sendMessage } from './llm';
+import { setApiKey, hasApiKey, streamMessage } from './llm';
 import { IPC_CHANNELS } from '../shared/types';
 import type {
   CreateNodeParams,
   UpdateNodeParams,
   AddMessageParams,
-  UpdatePositionParams
+  UpdatePositionParams,
+  Message
 } from '../shared/types';
+
+function loadSavedApiKey(): void {
+  const keyFile = nodePath.join(app.getPath('userData'), 'api-key.enc');
+  if (!safeStorage.isEncryptionAvailable() || !fs.existsSync(keyFile)) return;
+  try {
+    const encrypted = fs.readFileSync(keyFile);
+    const key = safeStorage.decryptString(encrypted);
+    setApiKey(key);
+  } catch {
+    // ignore corrupt/missing file
+  }
+}
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -53,23 +68,6 @@ function createWindow(): void {
     return { action: 'deny' };
   });
 
-  // Window control handlers
-  ipcMain.on(IPC_CHANNELS.WINDOW_MINIMIZE, () => {
-    mainWindow.minimize();
-  });
-
-  ipcMain.on(IPC_CHANNELS.WINDOW_MAXIMIZE, () => {
-    if (mainWindow.isMaximized()) {
-      mainWindow.unmaximize();
-    } else {
-      mainWindow.maximize();
-    }
-  });
-
-  ipcMain.on(IPC_CHANNELS.WINDOW_CLOSE, () => {
-    mainWindow.close();
-  });
-
   // Development or production URL
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']);
@@ -79,6 +77,20 @@ function createWindow(): void {
 }
 
 function setupIPCHandlers(): void {
+  // Window control handlers — use getFocusedWindow to avoid closed-over stale references
+  ipcMain.on(IPC_CHANNELS.WINDOW_MINIMIZE, () => {
+    BrowserWindow.getFocusedWindow()?.minimize();
+  });
+
+  ipcMain.on(IPC_CHANNELS.WINDOW_MAXIMIZE, () => {
+    const win = BrowserWindow.getFocusedWindow();
+    if (win?.isMaximized()) win.unmaximize(); else win?.maximize();
+  });
+
+  ipcMain.on(IPC_CHANNELS.WINDOW_CLOSE, () => {
+    BrowserWindow.getFocusedWindow()?.close();
+  });
+
   // Database handlers - Nodes
   ipcMain.handle(IPC_CHANNELS.DB_GET_ALL_NODES, () => {
     return getAllNodes();
@@ -130,6 +142,12 @@ function setupIPCHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.LLM_SET_API_KEY, (_, key: string) => {
     try {
       setApiKey(key);
+      // Persist encrypted key to disk
+      if (safeStorage.isEncryptionAvailable()) {
+        const keyFile = nodePath.join(app.getPath('userData'), 'api-key.enc');
+        const encrypted = safeStorage.encryptString(key);
+        fs.writeFileSync(keyFile, encrypted);
+      }
       return true;
     } catch (error) {
       console.error('Failed to set API key:', error);
@@ -141,15 +159,21 @@ function setupIPCHandlers(): void {
     return hasApiKey();
   });
 
-  ipcMain.handle(IPC_CHANNELS.LLM_SEND_MESSAGE, async (_, nodeId: string) => {
-    const context = getConversationContext(nodeId);
-    const response = await sendMessage(context);
-    const message = addMessage({
-      node_id: nodeId,
-      role: 'assistant',
-      content: response
-    });
-    return message;
+  // Streaming LLM handler — sends events back to renderer during the stream
+  ipcMain.handle(IPC_CHANNELS.LLM_SEND_MESSAGE, async (event, nodeId: string, context: Message[]) => {
+    const webContents = event.sender;
+    try {
+      webContents.send(IPC_CHANNELS.LLM_STREAM_CHUNK, { nodeId, chunk: '' }); // signal start
+      const fullText = await streamMessage(context, (chunk) => {
+        webContents.send(IPC_CHANNELS.LLM_STREAM_CHUNK, { nodeId, chunk });
+      });
+      const message = addMessage({ node_id: nodeId, role: 'assistant', content: fullText });
+      webContents.send(IPC_CHANNELS.LLM_STREAM_END, { nodeId, message });
+      return message;
+    } catch (error) {
+      webContents.send(IPC_CHANNELS.LLM_STREAM_ERROR, { nodeId, error: (error as Error).message });
+      throw error;
+    }
   });
 }
 
@@ -164,6 +188,9 @@ app.whenReady().then(() => {
 
   // Initialize database
   initDatabase();
+
+  // Load persisted API key (if any)
+  loadSavedApiKey();
 
   // Setup IPC handlers
   setupIPCHandlers();

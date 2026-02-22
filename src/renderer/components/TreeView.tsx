@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import {
   ReactFlow,
   Background,
@@ -6,8 +6,6 @@ import {
   MiniMap,
   useNodesState,
   useEdgesState,
-  addEdge,
-  Connection,
   Node,
   Edge,
   NodeTypes,
@@ -58,16 +56,11 @@ export default function TreeView() {
   const [rfNodes, setRfNodes, onNodesChange] = useNodesState(flowNodes);
   const [rfEdges, setRfEdges, onEdgesChange] = useEdgesState(flowEdges);
 
-  // Sync with store when nodes change
-  useMemo(() => {
+  // Sync React Flow internal state when store nodes/edges change
+  useEffect(() => {
     setRfNodes(flowNodes);
     setRfEdges(flowEdges);
   }, [flowNodes, flowEdges, setRfNodes, setRfEdges]);
-
-  const onConnect = useCallback(
-    (params: Connection) => setRfEdges((eds) => addEdge(params, eds)),
-    [setRfEdges]
-  );
 
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
@@ -94,7 +87,6 @@ export default function TreeView() {
         edges={rfEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
         onNodeClick={onNodeClick}
         onNodeDragStop={onNodeDragStop}
         nodeTypes={nodeTypes}

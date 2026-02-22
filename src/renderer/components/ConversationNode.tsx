@@ -12,6 +12,7 @@ function ConversationNodeComponent({ data, id }: NodeProps<Node & { data: NodeDa
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(data.title);
   const [showActions, setShowActions] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const handleTitleSubmit = () => {
     if (editTitle.trim() && editTitle !== data.title) {
@@ -27,14 +28,27 @@ function ConversationNodeComponent({ data, id }: NodeProps<Node & { data: NodeDa
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm('Delete this conversation and all its branches?')) {
-      deleteNode(id);
-    }
+    setConfirmingDelete(true);
+  };
+
+  const handleConfirmDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    deleteNode(id);
+  };
+
+  const handleCancelDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setConfirmingDelete(false);
   };
 
   const handleBookmark = (e: React.MouseEvent) => {
     e.stopPropagation();
     updateNode({ id, bookmarked: !data.bookmarked });
+  };
+
+  const handleMouseLeave = () => {
+    setShowActions(false);
+    setConfirmingDelete(false);
   };
 
   const formatDate = (timestamp: number) => {
@@ -54,7 +68,7 @@ function ConversationNodeComponent({ data, id }: NodeProps<Node & { data: NodeDa
         }
       `}
       onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
+      onMouseLeave={handleMouseLeave}
     >
       {/* Input Handle */}
       <Handle
@@ -148,15 +162,33 @@ function ConversationNodeComponent({ data, id }: NodeProps<Node & { data: NodeDa
             </svg>
           </button>
           <div className="flex-1" />
-          <button
-            onClick={handleDelete}
-            className="p-1.5 rounded hover:bg-error/10 text-text-secondary hover:text-error transition-colors"
-            title="Delete conversation"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
+          {confirmingDelete ? (
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-error mr-1">Delete?</span>
+              <button
+                onClick={handleConfirmDelete}
+                className="px-1.5 py-0.5 rounded text-xs bg-error text-white"
+              >
+                Yes
+              </button>
+              <button
+                onClick={handleCancelDelete}
+                className="px-1.5 py-0.5 rounded text-xs border border-border"
+              >
+                No
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleDelete}
+              className="p-1.5 rounded hover:bg-error/10 text-text-secondary hover:text-error transition-colors"
+              title="Delete conversation"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
         </div>
       )}
     </div>

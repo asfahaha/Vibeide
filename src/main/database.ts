@@ -1,5 +1,4 @@
 import Database from 'better-sqlite3';
-import { app } from 'electron';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import type {
@@ -14,11 +13,24 @@ import type {
 
 let db: Database.Database | null = null;
 
-export function initDatabase(): void {
-  const userDataPath = app.getPath('userData');
-  const dbPath = path.join(userDataPath, 'research-tree.db');
+function deserializeNode(row: any): ConversationNode {
+  return {
+    ...row,
+    tags: JSON.parse(row.tags || '[]'),
+    bookmarked: Boolean(row.bookmarked)
+  };
+}
 
-  db = new Database(dbPath);
+export function initDatabase(dbPath?: string): void {
+  // When dbPath is provided (e.g., ':memory:' for tests), use it directly.
+  // Otherwise fall back to the Electron userData path.
+  const resolvedPath = dbPath ?? (() => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { app } = require('electron') as typeof import('electron');
+    return path.join(app.getPath('userData'), 'research-tree.db');
+  })();
+
+  db = new Database(resolvedPath);
   db.pragma('journal_mode = WAL');
 
   // Create tables
@@ -68,11 +80,7 @@ export function getAllNodes(): ConversationNode[] {
   if (!db) throw new Error('Database not initialized');
 
   const rows = db.prepare('SELECT * FROM nodes ORDER BY created_at ASC').all() as any[];
-  return rows.map(row => ({
-    ...row,
-    tags: JSON.parse(row.tags || '[]'),
-    bookmarked: Boolean(row.bookmarked)
-  }));
+  return rows.map(deserializeNode);
 }
 
 export function getNode(id: string): ConversationNode | null {
@@ -81,11 +89,7 @@ export function getNode(id: string): ConversationNode | null {
   const row = db.prepare('SELECT * FROM nodes WHERE id = ?').get(id) as any;
   if (!row) return null;
 
-  return {
-    ...row,
-    tags: JSON.parse(row.tags || '[]'),
-    bookmarked: Boolean(row.bookmarked)
-  };
+  return deserializeNode(row);
 }
 
 export function createNode(params: CreateNodeParams): ConversationNode {
@@ -166,31 +170,33 @@ export function getMessages(nodeId: string): Message[] {
 export function getConversationContext(nodeId: string): Message[] {
   if (!db) throw new Error('Database not initialized');
 
-  // Build the path from root to this node
-  const path: string[] = [];
-  let currentId: string | null = nodeId;
+  // Build full ancestor path (root-first) using a single recursive CTE
+  const ancestorRows = db.prepare(`
+    WITH RECURSIVE ancestors(id, parent_id, depth) AS (
+      SELECT id, parent_id, 0 FROM nodes WHERE id = ?
+      UNION ALL
+      SELECT n.id, n.parent_id, a.depth + 1
+      FROM nodes n JOIN ancestors a ON n.id = a.parent_id
+    )
+    SELECT id FROM ancestors ORDER BY depth DESC
+  `).all(nodeId) as { id: string }[];
 
-  while (currentId) {
-    path.unshift(currentId);
-    const node = getNode(currentId);
-    currentId = node?.parent_id ?? null;
-  }
+  if (ancestorRows.length === 0) return [];
 
-  // Collect messages from all nodes in the path
-  const messages: Message[] = [];
-  for (const nid of path) {
-    const nodeMessages = getMessages(nid);
-    // Mark messages from ancestor nodes as inherited
-    const isAncestor = nid !== nodeId;
-    for (const msg of nodeMessages) {
-      messages.push({
-        ...msg,
-        is_inherited: isAncestor
-      });
-    }
-  }
+  const nodePath = ancestorRows.map(r => r.id);
 
-  return messages;
+  // Fetch all messages for the entire ancestor path in one query
+  const placeholders = nodePath.map(() => '?').join(',');
+  const rows = db.prepare(`
+    SELECT * FROM messages
+    WHERE node_id IN (${placeholders})
+    ORDER BY timestamp ASC
+  `).all(...nodePath) as any[];
+
+  return rows.map(row => ({
+    ...row,
+    is_inherited: row.node_id !== nodeId
+  }));
 }
 
 export function addMessage(params: AddMessageParams): Message {

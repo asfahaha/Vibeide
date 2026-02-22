@@ -19,6 +19,9 @@ const IPC_CHANNELS = {
   LLM_SEND_MESSAGE: 'llm:send-message',
   LLM_SET_API_KEY: 'llm:set-api-key',
   LLM_HAS_API_KEY: 'llm:has-api-key',
+  LLM_STREAM_CHUNK: 'llm:stream-chunk',
+  LLM_STREAM_END: 'llm:stream-end',
+  LLM_STREAM_ERROR: 'llm:stream-error',
 
   // Window operations
   WINDOW_MINIMIZE: 'window:minimize',
@@ -122,8 +125,28 @@ const api = {
   hasApiKey: (): Promise<boolean> =>
     ipcRenderer.invoke(IPC_CHANNELS.LLM_HAS_API_KEY),
 
-  sendMessage: (nodeId: string): Promise<Message> =>
-    ipcRenderer.invoke(IPC_CHANNELS.LLM_SEND_MESSAGE, nodeId),
+  // Issue 13: pass context from renderer so main process needn't re-query DB
+  sendMessage: (nodeId: string, context: Message[]): Promise<Message> =>
+    ipcRenderer.invoke(IPC_CHANNELS.LLM_SEND_MESSAGE, nodeId, context),
+
+  // Issue 4: streaming event listeners
+  onStreamChunk: (callback: (data: { nodeId: string; chunk: string }) => void): void => {
+    ipcRenderer.on('llm:stream-chunk', (_e, data) => callback(data));
+  },
+
+  onStreamEnd: (callback: (data: { nodeId: string; message: Message }) => void): void => {
+    ipcRenderer.on('llm:stream-end', (_e, data) => callback(data));
+  },
+
+  onStreamError: (callback: (data: { nodeId: string; error: string }) => void): void => {
+    ipcRenderer.on('llm:stream-error', (_e, data) => callback(data));
+  },
+
+  removeStreamListeners: (): void => {
+    ipcRenderer.removeAllListeners('llm:stream-chunk');
+    ipcRenderer.removeAllListeners('llm:stream-end');
+    ipcRenderer.removeAllListeners('llm:stream-error');
+  },
 
   // Window operations
   minimizeWindow: (): void =>

@@ -91,6 +91,9 @@ export const IPC_CHANNELS = {
   LLM_SEND_MESSAGE: 'llm:send-message',
   LLM_SET_API_KEY: 'llm:set-api-key',
   LLM_HAS_API_KEY: 'llm:has-api-key',
+  LLM_STREAM_CHUNK: 'llm:stream-chunk',
+  LLM_STREAM_END: 'llm:stream-end',
+  LLM_STREAM_ERROR: 'llm:stream-error',
 
   // Window operations
   WINDOW_MINIMIZE: 'window:minimize',

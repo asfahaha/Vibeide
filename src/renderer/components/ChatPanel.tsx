@@ -10,12 +10,14 @@ export default function ChatPanel({ onConfigureApiKey }: ChatPanelProps) {
   const {
     selectedNodeId,
     messages,
+    pendingMessages,
     nodes,
     isLoading,
     hasApiKey,
     addUserMessage,
     sendMessage,
-    forkConversation
+    forkConversation,
+    setError
   } = useTreeStore();
 
   const [inputValue, setInputValue] = useState('');
@@ -24,10 +26,12 @@ export default function ChatPanel({ onConfigureApiKey }: ChatPanelProps) {
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId);
   const nodeMessages = selectedNodeId ? messages[selectedNodeId] || [] : [];
+  const nodeIsLoading = selectedNodeId ? (isLoading[selectedNodeId] ?? false) : false;
+  const pendingText = selectedNodeId ? (pendingMessages[selectedNodeId] || '') : '';
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [nodeMessages]);
+  }, [nodeMessages, pendingText]);
 
   useEffect(() => {
     if (selectedNodeId) {
@@ -36,13 +40,17 @@ export default function ChatPanel({ onConfigureApiKey }: ChatPanelProps) {
   }, [selectedNodeId]);
 
   const handleSubmit = async () => {
-    if (!inputValue.trim() || !selectedNodeId || !hasApiKey || isLoading) return;
+    if (!inputValue.trim() || !selectedNodeId || !hasApiKey || nodeIsLoading) return;
 
     const content = inputValue.trim();
-    setInputValue('');
-
-    await addUserMessage(selectedNodeId, content);
-    await sendMessage(selectedNodeId);
+    try {
+      await addUserMessage(selectedNodeId, content);
+      setInputValue(''); // Only clear after confirmed DB write
+      sendMessage(selectedNodeId); // Fire and forget — streaming events handle the rest
+    } catch (error) {
+      // Input is preserved so user can retry; surface error via store
+      setError((error as Error).message);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -102,7 +110,7 @@ export default function ChatPanel({ onConfigureApiKey }: ChatPanelProps) {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-5 py-4">
-        {nodeMessages.length === 0 ? (
+        {nodeMessages.length === 0 && !nodeIsLoading ? (
           <div className="h-full flex flex-col items-center justify-center text-text-tertiary">
             <div className="w-10 h-10 rounded border border-border flex items-center justify-center mb-3">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
@@ -124,15 +132,26 @@ export default function ChatPanel({ onConfigureApiKey }: ChatPanelProps) {
                 onFork={() => forkConversation(selectedNodeId)}
               />
             ))}
-            {isLoading && (
-              <div className="flex items-center gap-2 text-text-tertiary text-sm py-2">
-                <div className="flex gap-1">
-                  <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse-subtle" />
-                  <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse-subtle" style={{ animationDelay: '200ms' }} />
-                  <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse-subtle" style={{ animationDelay: '400ms' }} />
+            {nodeIsLoading && (
+              pendingText ? (
+                // Show streaming text as it arrives
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-text-tertiary">Claude</span>
+                  <div className="bg-canvas border border-border rounded px-4 py-3 text-sm text-text whitespace-pre-wrap">
+                    {pendingText}
+                    <span className="inline-block w-1.5 h-3.5 bg-primary ml-0.5 animate-pulse" />
+                  </div>
                 </div>
-                <span>Thinking</span>
-              </div>
+              ) : (
+                <div className="flex items-center gap-2 text-text-tertiary text-sm py-2">
+                  <div className="flex gap-1">
+                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse-subtle" />
+                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse-subtle" style={{ animationDelay: '200ms' }} />
+                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse-subtle" style={{ animationDelay: '400ms' }} />
+                  </div>
+                  <span>Thinking</span>
+                </div>
+              )
             )}
             <div ref={messagesEndRef} />
           </div>
@@ -163,11 +182,11 @@ export default function ChatPanel({ onConfigureApiKey }: ChatPanelProps) {
               placeholder="Ask a question..."
               className="flex-1 bg-canvas border border-border rounded px-4 py-3 text-sm text-text placeholder-text-tertiary resize-none focus:outline-none focus:border-primary transition-colors"
               rows={2}
-              disabled={isLoading}
+              disabled={nodeIsLoading}
             />
             <button
               onClick={handleSubmit}
-              disabled={!inputValue.trim() || isLoading}
+              disabled={!inputValue.trim() || nodeIsLoading}
               className="self-end w-10 h-10 flex items-center justify-center bg-primary hover:bg-primary-hover disabled:bg-border disabled:text-text-tertiary text-text-inverse rounded transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
